@@ -43,7 +43,7 @@
       height: calc(var(--size) * 0.044);
       border: none;
       cursor: pointer;
-      border-radius: 4px 4px 2px 2px;
+      border-radius: calc(var(--size) * 0.012) calc(var(--size) * 0.012) 2px 2px;
       transition: all 0.15s ease;
       background: linear-gradient(0deg, #E03E3E, #c43535);
       box-shadow: 0 -2px 5px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.2);
@@ -52,12 +52,12 @@
       background: linear-gradient(0deg, #e94a4a, #c43535);
     }
     .top-btn:active {
-      height: calc(var(--size) * 0.028);
-      margin-top: calc(var(--size) * 0.016);
+      height: calc(var(--size) * 0.032);
+      margin-top: calc(var(--size) * 0.012);
     }
     .top-btn.pressed {
-      height: calc(var(--size) * 0.022);
-      margin-top: calc(var(--size) * 0.022);
+      height: calc(var(--size) * 0.028);
+      margin-top: calc(var(--size) * 0.016);
       background: linear-gradient(0deg, #c43535, #a82c2c);
       box-shadow: 0 -1px 2px rgba(0,0,0,0.15);
     }
