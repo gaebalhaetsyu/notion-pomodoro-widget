@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pomodoro Timer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #f5f0e8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .timer-wrapper {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ===== TOP BUTTON ===== */
+    .top-button {
+      width: 32px;
+      height: 16px;
+      background: linear-gradient(0deg, #e85050, #d63c3c);
+      border-radius: 4px 4px 2px 2px;
+      box-shadow: 0 -2px 6px rgba(0,0,0,0.15);
+      cursor: pointer;
+      z-index: 10;
+      border: none;
+      margin-bottom: -2px;
+      transition: transform 0.1s;
+    }
+    .top-button:hover {
+      background: linear-gradient(0deg, #f06060, #e04545);
+    }
+    .top-button:active {
+      transform: scaleY(0.8);
+    }
+
+    /* ===== HOUSING (sky blue square body) ===== */
+    .housing {
+      width: 340px;
+      height: 340px;
+      border-radius: 24px;
+      position: relative;
+      background: linear-gradient(170deg, #a8cfe0 0%, #8ebdd4 40%, #7bb1cc 100%);
+      box-shadow:
+        0 12px 40px rgba(0,0,0,0.18),
+        0 2px 8px rgba(0,0,0,0.1),
+        inset 0 1px 0 rgba(255,255,255,0.3),
+        inset 0 -2px 0 rgba(0,0,0,0.06);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* notion. logo top-left */
+    .logo {
+      position: absolute;
+      top: 18px;
+      left: 22px;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(0, 0, 0, 0.35);
+      letter-spacing: -0.3px;
+      z-index: 10;
+    }
+
+    /* ===== WHITE CLOCK FACE ===== */
+    .face {
+      width: 270px;
+      height: 270px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 48% 44%, #ffffff 0%, #f7f5f0 75%, #eeeae3 100%);
+      position: relative;
+      z-index: 2;
+      box-shadow:
+        0 2px 12px rgba(0,0,0,0.1),
+        inset 0 0 8px rgba(0,0,0,0.03);
+      cursor: pointer;
+    }
+
+    .face-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Tick styles */
+    .tk { stroke-linecap: butt; }
+    .tk-maj { stroke: #333; stroke-width: 2; }
+    .tk-min { stroke: #ccc; stroke-width: 0.7; }
+
+    /* Red pie wedge */
+    .pie { fill: #d94040; opacity: 0.82; }
+
+    /* Number labels on the face */
+    .num-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      fill: #555;
+      text-anchor: middle;
+      dominant-baseline: central;
+      user-select: none;
+      cursor: pointer;
+    }
+    .num-label:hover { fill: #d94040; }
+    .num-label.active { fill: #d94040; font-weight: 800; }
+
+    /* "Flow with your own rhythm." text */
+    .tagline {
+      position: absolute;
+      bottom: 58px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Inter', sans-serif;
+      font-size: 8.5px;
+      font-weight: 500;
+      color: #aaa;
+      white-space: nowrap;
+      letter-spacing: 0.2px;
+      z-index: 5;
+    }
+
+    /* Countdown display */
+    .countdown {
+      position: absolute;
+      top: 16px;
+      right: 18px;
+      font-family: 'Inter', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(0,0,0,0.25);
+      letter-spacing: 0.5px;
+      z-index: 10;
+    }
+
+    /* Center dot */
+    .center-dot {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #999;
+      z-index: 5;
+    }
+  </style>
+</head>
+<body>
+  <div class="timer-wrapper">
+    <button class="top-button" id="topBtn" title="시작 / 리셋"></button>
+    <div class="housing">
+      <div class="logo">notion.</div>
+      <div class="countdown" id="countdown">25:00</div>
+      <div class="face" id="face">
+        <svg class="face-svg" viewBox="0 0 270 270" id="fsvg"></svg>
+        <div class="center-dot"></div>
+        <div class="tagline">Flow with your own rhythm.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CX = 135, CY = 135, R = 122, ns = 'http://www.w3.org/2000/svg';
+    const svg = document.getElementById('fsvg');
+    let pieEl;
+
+    // Build face: pie, ticks, numbers
+    (function () {
+      pieEl = document.createElementNS(ns, 'path');
+      pieEl.setAttribute('class', 'pie');
+      svg.appendChild(pieEl);
+
+      for (let i = 0; i < 60; i++) {
+        const ang = (i * 6 - 90) * Math.PI / 180;
+        const maj = i % 5 === 0;
+        const outerR = R;
+        const innerR = maj ? R - 14 : R - 7;
+        const l = document.createElementNS(ns, 'line');
+        l.setAttribute('x1', CX + innerR * Math.cos(ang));
+        l.setAttribute('y1', CY + innerR * Math.sin(ang));
+        l.setAttribute('x2', CX + outerR * Math.cos(ang));
+        l.setAttribute('y2', CY + outerR * Math.sin(ang));
+        l.setAttribute('class', 'tk ' + (maj ? 'tk-maj' : 'tk-min'));
+        svg.appendChild(l);
+      }
+
+      const numR = R - 28;
+      for (let i = 0; i < 60; i += 5) {
+        const ang = (i * 6 - 90) * Math.PI / 180;
+        const x = CX + numR * Math.cos(ang);
+        const y = CY + numR * Math.sin(ang);
+        const txt = document.createElementNS(ns, 'text');
+        txt.setAttribute('x', x);
+        txt.setAttribute('y', y);
+        txt.setAttribute('class', 'num-label');
+        txt.textContent = i === 0 ? '60' : i;
+        txt.dataset.min = i === 0 ? 60 : i;
+        txt.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (run) return;
+          setT(+this.dataset.min);
+        });
+        svg.appendChild(txt);
+      }
+    })();
+
+    // Pie path: draws clockwise from 12 o'clock for the given number of minutes (out of 60)
+    function piePath(minutes) {
+      if (minutes <= 0) return '';
+      const pr = R - 2;
+      const frac = minutes / 60;
+      if (frac >= 1) return `M${CX} ${CY - pr}A${pr} ${pr} 0 1 1 ${CX - 0.01} ${CY - pr}L${CX} ${CY}Z`;
+      const endAngle = (-90 + frac * 360) * Math.PI / 180;
+      return `M${CX} ${CY}L${CX} ${CY - pr}A${pr} ${pr} 0 ${frac > 0.5 ? 1 : 0} 1 ${CX + pr * Math.cos(endAngle)} ${CY + pr * Math.sin(endAngle)}Z`;
+    }
+
+    // State
+    let total = 25 * 60, remain = total, run = false, iv = null, snd = true;
+    const $ = s => document.querySelector(s);
+    const $$ = s => document.querySelectorAll(s);
+
+    function render() {
+      const m = Math.floor(remain / 60), s = remain % 60;
+      $('#countdown').textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+
+      // Show remaining minutes on the dial (fractional, so wedge shrinks smoothly)
+      const remainMinutes = remain / 60;
+      pieEl.setAttribute('d', piePath(remainMinutes));
+
+      $$('.num-label').forEach(el => {
+        el.classList.toggle('active', +el.dataset.min === total / 60);
+      });
+    }
+
+    function setT(min) {
+      if (run) return;
+      min = Math.round(min / 5) * 5;
+      min = Math.max(5, Math.min(60, min));
+      total = min * 60; remain = total;
+      render();
+    }
+
+    function go() {
+      if (remain <= 0) return;
+      run = true;
+      iv = setInterval(() => {
+        remain--; render();
+        if (remain <= 0) { halt(); ding(); }
+      }, 1000);
+    }
+
+    function pause() {
+      run = false; clearInterval(iv);
+    }
+
+    function halt() { pause(); }
+
+    function rst() { halt(); remain = total; render(); }
+
+    function ding() {
+      if (!snd) return;
+      try {
+        const c = new AudioContext();
+        [523, 659, 784, 1047].forEach((f, i) => {
+          const o = c.createOscillator(), g = c.createGain();
+          o.connect(g); g.connect(c.destination);
+          o.frequency.value = f; o.type = 'sine';
+          g.gain.setValueAtTime(0.12, c.currentTime + i * 0.18);
+          g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + i * 0.18 + 0.25);
+          o.start(c.currentTime + i * 0.18); o.stop(c.currentTime + i * 0.18 + 0.25);
+        });
+      } catch (e) {}
+    }
+
+    // Drag on face to set time
+    let dragging = false;
+
+    function getAngleFromEvent(e) {
+      const face = $('#face');
+      const rect = face.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      let angle = Math.atan2(clientY - cy, clientX - cx) * 180 / Math.PI + 90;
+      if (angle < 0) angle += 360;
+      return angle;
+    }
+
+    function setTimeFromAngle(angle) {
+      let minutes = Math.round(angle / 6);
+      if (minutes === 0) minutes = 60;
+      minutes = Math.round(minutes / 5) * 5;
+      if (minutes === 0) minutes = 5;
+      setT(minutes);
+    }
+
+    $('#face').addEventListener('mousedown', (e) => {
+      if (run) return;
+      if (e.target.classList.contains('num-label')) return;
+      dragging = true;
+      setTimeFromAngle(getAngleFromEvent(e));
+      e.preventDefault();
+    });
+
+    $('#face').addEventListener('touchstart', (e) => {
+      if (run) return;
+      dragging = true;
+      setTimeFromAngle(getAngleFromEvent(e));
+      e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      setTimeFromAngle(getAngleFromEvent(e));
+    });
+
+    document.addEventListener('touchmove', (e) => {
+      if (!dragging) return;
+      setTimeFromAngle(getAngleFromEvent(e));
+    }, { passive: false });
+
+    document.addEventListener('mouseup', () => { dragging = false; });
+    document.addEventListener('touchend', () => { dragging = false; });
+
+    // Top button: start/pause (short press), reset (long press)
+    let pressTimer = null;
+    let didLongPress = false;
+
+    $('#topBtn').addEventListener('mousedown', () => {
+      didLongPress = false;
+      pressTimer = setTimeout(() => {
+        didLongPress = true;
+        rst();
+      }, 600);
+    });
+
+    $('#topBtn').addEventListener('mouseup', () => {
+      clearTimeout(pressTimer);
+      if (!didLongPress) {
+        if (run) pause(); else go();
+      }
+    });
+
+    $('#topBtn').addEventListener('mouseleave', () => {
+      clearTimeout(pressTimer);
+    });
+
+    render();
+  </script>
+</body>
+</html>
