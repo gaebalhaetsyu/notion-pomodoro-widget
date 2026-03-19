@@ -186,7 +186,7 @@
         txt.setAttribute('x', x);
         txt.setAttribute('y', y);
         txt.setAttribute('class', 'num-label');
-        txt.textContent = i === 0 ? '60' : i;
+        txt.textContent = i === 0 ? '0' : i;
         txt.dataset.min = i === 0 ? 60 : i;
         txt.addEventListener('click', function (e) {
           e.stopPropagation();
